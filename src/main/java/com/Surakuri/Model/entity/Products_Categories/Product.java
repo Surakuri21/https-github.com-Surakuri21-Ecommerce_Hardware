@@ -1,5 +1,6 @@
 package com.Surakuri.Model.entity.Products_Categories;
 
+
 import com.Surakuri.Model.entity.Payment_Orders.OrderItem;
 import com.Surakuri.Model.entity.User_Cart.CartItem;
 import jakarta.persistence.*;
@@ -37,4 +38,7 @@ public class Product {
 
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<OrderItem> orderItems = new HashSet<>();
+
+
+
 }
