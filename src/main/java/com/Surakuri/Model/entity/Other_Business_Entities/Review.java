@@ -1,14 +1,11 @@
 package com.Surakuri.Model.entity.Other_Business_Entities;
 
-
 import com.Surakuri.Model.entity.Products_Categories.Product;
 import com.Surakuri.Model.entity.User_Cart.User;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
-
 import java.time.LocalDateTime;
-import java.util.List;
 
 @Entity
 @Getter
@@ -16,51 +13,25 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 @EqualsAndHashCode
+@Table(name = "reviews")
 public class Review {
 
-
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
-    private String reviewText;
+    private String reviewText; // "This G.I. Pipe is very durable!"
 
-    @Column(nullable = false)
-    private String rating;
-
-    @ElementCollection
-    private List<String> productImages;
+    private double rating; // 1.0 to 5.0
 
     @JsonIgnore
     @ManyToOne
+    @JoinColumn(name = "product_id")
     private Product product;
 
-
     @ManyToOne
+    @JoinColumn(name = "user_id")
     private User user;
 
-    @Column(nullable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 }

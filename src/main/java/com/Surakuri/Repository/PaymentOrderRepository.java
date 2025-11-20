@@ -11,12 +11,7 @@ import java.util.Optional;
 @Repository
 public interface PaymentOrderRepository extends JpaRepository<PaymentOrder, Long> {
 
-    // Find all orders by status
-    List<PaymentOrder> findByStatus(PaymentOrderStatus status);
-
-    // Find by transaction ID inside embedded PaymentDetails
-    Optional<PaymentOrder> findByPaymentDetailsTransactionId(String transactionId);
-
-    // Find orders by user ID
-    List<PaymentOrder> findByUserId(Long userId);
+    // This works for GCash, PayMaya, or Card.
+    // It looks inside the embedded 'paymentDetails' for the generic 'paymentId'.
+    Optional<PaymentOrder> findByPaymentDetails_PaymentId(String paymentId);
 }

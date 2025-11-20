@@ -9,29 +9,21 @@ import lombok.*;
 @AllArgsConstructor
 @NoArgsConstructor
 @EqualsAndHashCode
+@Table(name = "deals") // Explicitly map to SQL table
 public class Deal {
 
-
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    // FIX: Use IDENTITY to match MySQL AUTO_INCREMENT
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "deal_id")
     private Long id;
 
-    private Integer discount;
+    @Column(nullable = false)
+    private Integer discount; // e.g., 20 (for 20% off)
 
+    // RELATIONSHIP: Link this deal to a specific Homepage Section
+    // Usage: If HomeCategory is "Summer Sale", this Deal attaches the "20% Off" tag to it.
     @OneToOne
-    private Home_Category category;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    @JoinColumn(name = "home_category_id") // Maps to SQL Foreign Key
+    private HomeCategory category;
 }

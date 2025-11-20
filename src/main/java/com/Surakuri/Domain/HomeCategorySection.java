@@ -2,16 +2,16 @@ package com.Surakuri.Domain;
 
 public enum HomeCategorySection {
 
+    // LAYOUT TYPES
+    HOME,                            // Main banner or default view
+    GRID,                            // The square icons menu (e.g., "Shop by Category")
+    DEALS_PROMOTION,                 // The "Flash Sale" red section
 
-    HOME,                            // Home Category
-    DEALS_PROMOTION,                 // Deals & Promotions
-    TOOLS_EQUIPMENT,                 // Tools & Equipment
-    BUILDING_CONSTRUCTION,           // Building & Construction
-    ELECTRICAL_LIGHTNING,            // Electrical & Lightning
-    PLUMBING_PIPES,                  // Plumbing & Pipes
-    GARDEN_OUTDOOR,                  // Garden & Outdoor
-    SPECIAL_CATEGORIES ,              // Special Categories
-
-    GRID
-
+    // HARDWARE DEPARTMENTS (Rows on the Homepage)
+    TOOLS_EQUIPMENT,
+    BUILDING_CONSTRUCTION,
+    ELECTRICAL_LIGHTING,             // Fixed spelling: Lighting (Bulbs)
+    PLUMBING_PIPES,
+    GARDEN_OUTDOOR,
+    SPECIAL_CATEGORIES               // Clearance or Seasonal items
 }

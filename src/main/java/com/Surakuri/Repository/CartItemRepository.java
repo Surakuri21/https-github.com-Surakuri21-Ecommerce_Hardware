@@ -1,15 +1,34 @@
 package com.Surakuri.Repository;
 
-import com.Surakuri.Model.entity.User_Cart.CartItem;  // Correct package
+import com.Surakuri.Model.entity.User_Cart.CartItem;
 import org.springframework.data.jpa.repository.JpaRepository;
-import java.util.List;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.stereotype.Repository;
 
+import java.util.Optional;
+
+@Repository
 public interface CartItemRepository extends JpaRepository<CartItem, Long> {
 
-    // Common derived query
-    List<CartItem> findByCartId(Long cartId);
+    // ==========================================
+    // 1. THE "ADD TO CART" CHECKER
+    // ==========================================
 
-    // Placeholder for advanced query
-    // @Query("SELECT c FROM CartItem c WHERE c.quantity > :minQty")
-    // List<CartItem> findCartItemsWithMinQuantity(@Param("minQty") int minQty);
+    // When a user clicks "Add to Cart", we first check:
+    // "Does this specific Cart already contain this specific Variant (Size/SKU)?"
+    // If YES -> We just increase quantity (+1).
+    // If NO  -> We create a new CartItem row.
+    Optional<CartItem> findByCartIdAndVariantId(Long cartId, Long variantId);
+
+
+    // ==========================================
+    // 2. CLEANUP (After Checkout)
+    // ==========================================
+
+    // Deletes all items in a specific cart.
+    // Usage: Call this immediately after an Order is successfully placed (PAID).
+    @Modifying // Tells Spring this modifies the DB (DELETE), not just reads.
+    @Query("DELETE FROM CartItem ci WHERE ci.cart.id = :cartId")
+    void deleteAllByCartId(Long cartId);
 }

@@ -1,10 +1,9 @@
 package com.Surakuri.Domain;
 
 public enum PaymentMethod {
-
-    GCASH,
-    MAYA,
-    CREDIT_CARD,
-    DEBIT_CARD,
-    CASH_ON_DELIVERY
+    COD,            // Cash on Delivery (Most common in PH)
+    GCASH,          // E-Wallet
+    PAYMAYA,        // E-Wallet (Maya)
+    CREDIT_CARD,    // Visa/Mastercard
+    BANK_TRANSFER   // BPI/BDO (For large hardware orders)
 }

@@ -1,16 +1,9 @@
 package com.Surakuri.Domain;
 
 public enum AccountStatus {
-
-    PENDING_VERIFICATION,   //  Account is created but not yet verified
-    ACTIVE,                 //  Account is active and in good standing
-    SUSPENDED,               // Account is temporarily suspended, possibly due to violations
-    DEACTIVATED,            //  Account is permanently banned due to severe violations
-    BANNED,                 //  Account id permanently closed , possibly at user request
-
-
-
-
-
-
+    PENDING_VERIFICATION,   // User registered but hasn't clicked the email link yet
+    ACTIVE,                 // Good standing, can buy/sell
+    SUSPENDED,              // Temporary lock (e.g., suspicious activity)
+    DEACTIVATED,            // User closed their own account (Soft Delete)
+    BANNED                  // Admin permanently removed them (Violation)
 }
