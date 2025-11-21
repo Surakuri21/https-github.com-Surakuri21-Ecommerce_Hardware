@@ -1,13 +1,14 @@
 package com.Surakuri.Model.entity.Products_Categories;
 
-import com.Surakuri.Model.entity.Payment_Orders.OrderItem;
-import com.Surakuri.Model.entity.User_Cart.CartItem;
+import com.Surakuri.Model.entity.Other_Business_Entities.Seller; // Import Seller
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
-import java.math.BigDecimal; // IMPORT THIS for money
+
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Getter
@@ -19,57 +20,54 @@ import java.util.Set;
 public class Product {
 
     @Id
-    // CHANGE: Use IDENTITY for MySQL. 'AUTO' can sometimes cause errors in existing DBs.
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "product_id") // Maps to our SQL 'product_id'
+    @Column(name = "product_id")
     private Long id;
-
-    // --- YOUR EXISTING FIELDS (Modified for Database Types) ---
 
     @Column(nullable = false)
     private String name;
 
-    @Column(columnDefinition = "TEXT") // Allows long descriptions
+    @Column(columnDefinition = "TEXT")
     private String description;
+
+    private String brand; // e.g. "Phelps Dodge"
 
     private String imageUrl;
 
-    // CRITICAL CHANGE: Use BigDecimal for money, not Integer.
-    // MySQL 'DECIMAL' maps to Java 'BigDecimal'.
-    // Integers cannot handle cents (e.g., 150.50 PHP) and have rounding issues.
-    @Column(nullable = false)
-    private BigDecimal price;
-
-    private BigDecimal mrp; // Manufacturer's Recommended Price
-
-    // --- NEW FIELDS (Integrated from my previous "Hardware" Entity) ---
-
-    @Column(name = "sku", unique = true)
-    private String sku; // Stock Keeping Unit (e.g., "CEM-40KG") - Vital for inventory
-
-    @Column(name = "brand")
-    private String brand; // Hardware specific (e.g., "Phelps Dodge", "Eagle Cement")
-
-    @Column(name = "specifications", columnDefinition = "TEXT")
-    private String specifications; // e.g., "Voltage: 220V, Thickness: 2mm"
+    // Base Price (Optional, for display "Starts at...")
+    private BigDecimal price = BigDecimal.ZERO;
+    private BigDecimal mrp = BigDecimal.ZERO;
 
     @Column(name = "weight_kg")
-    private BigDecimal weightKg; // Vital for calculating shipping of heavy hardware
+    private BigDecimal weightKg = BigDecimal.ZERO;
 
-    @Column(name = "is_active")
-    private boolean isActive = true; // Soft delete (hide instead of delete)
+    @Column(name = "sku")
+    private String sku; // General SKU if needed
 
-    @Column(name = "created_at")
-    private LocalDateTime createdAt = LocalDateTime.now(); // Audit trail
+    @Column(columnDefinition = "TEXT")
+    private String specifications;
 
-    // --- YOUR RELATIONSHIPS (Kept exactly as you had them) ---
+    private boolean isActive = true;
+
+    private LocalDateTime createdAt;
+
+    // --- RELATIONSHIPS ---
 
     @ManyToOne
     @JoinColumn(name = "category_id")
     private Category category;
 
+    // FIX 1: Add the SELLER relationship (This fixes setSeller error)
+    @ManyToOne
+    @JoinColumn(name = "seller_id")
+    @JsonIgnore // Prevent infinite loop when fetching Seller -> Products -> Seller
+    private Seller seller;
 
-
+    // FIX 2: Add the VARIANTS list with Cascade (This fixes setVariants error)
+    // 'cascade = CascadeType.ALL' means "When I save the Product, save all these Variants automatically"
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
-    private Set<OrderItem> orderItems = new HashSet<>();
-}
+    private List<ProductVariant> variants = new ArrayList<>();
+
+
+    }
+    

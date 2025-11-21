@@ -1,5 +1,6 @@
 package com.Surakuri.Model.entity.Products_Categories;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 import java.math.BigDecimal;
@@ -10,7 +11,7 @@ import java.math.BigDecimal;
 @AllArgsConstructor
 @NoArgsConstructor
 @EqualsAndHashCode
-@Table(name = "product_variants") // Maps to SQL table 'product_variants'
+@Table(name = "product_variants") // Matches SQL table
 public class ProductVariant {
 
     @Id
@@ -22,18 +23,26 @@ public class ProductVariant {
     private String sku; // Stock Keeping Unit (e.g., "CEM-40KG")
 
     @Column(name = "variant_name")
-    private String variantName; // e.g., "40kg Bag" or "1/2 inch"
+    private String variantName; // e.g., "40kg Bag" or "1/2 inch diameter"
 
-    // PRICING
+    // PRICING & SPECS
+    // Always use BigDecimal for money calculations to avoid rounding errors
     @Column(nullable = false)
     private BigDecimal price;
 
     @Column(name = "weight_kg")
-    private BigDecimal weightKg; // Vital for shipping calc
+    private BigDecimal weightKg; // Critical for calculating shipping of heavy hardware
 
-    // RELATIONSHIP: Link back to the main Product
-    // This connects the Variant (Size) to the Parent Product (Name)
+    // --- RELATIONSHIPS ---
+
+    // 1. PARENT PRODUCT (Many Variants belong to One Product)
     @ManyToOne
     @JoinColumn(name = "product_id", nullable = false)
+    @JsonIgnore // Stops infinite recursion: Product -> Variant -> Product
     private Product product;
+
+    // 2. INVENTORY (One Variant has One Inventory Count)
+    // 'mappedBy' tells Hibernate the link is inside Inventory.java
+    @OneToOne(mappedBy = "variant", cascade = CascadeType.ALL)
+    private Inventory inventory;
 }

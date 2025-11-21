@@ -20,7 +20,7 @@ public class CartItem {
     // FIX: Use IDENTITY to match MySQL AUTO_INCREMENT
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "cart_item_id")
-    private Integer id;
+    private Long id;
 
     @ManyToOne
     @JsonIgnore // Prevents infinite loops when converting to JSON

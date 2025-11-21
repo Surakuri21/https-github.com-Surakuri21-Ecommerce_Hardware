@@ -11,22 +11,22 @@ import java.util.Optional;
 public interface ProductVariantRepository extends JpaRepository<ProductVariant, Long> {
 
     // ==========================================
-    // 1. DISPLAY LOGIC (Product Details Page)
+    // 1. STOREFRONT DISPLAY
     // ==========================================
 
-    // Find all options (Sizes/Weights) for a specific Product
-    // Usage: When User loads "Phelps Dodge Wire", show options: ["3.5mm", "5.5mm", "8.0mm"]
+    // Find all size/weight options for a specific Product
+    // Usage: When User clicks "Republic Cement", show list: ["40kg", "1kg"]
     List<ProductVariant> findByProductId(Long productId);
 
 
     // ==========================================
-    // 2. INVENTORY & CART LOGIC
+    // 2. INVENTORY & ADMIN MANAGEMENT
     // ==========================================
 
-    // Find a specific variant by its Unique SKU Code
-    // Usage: Barcode scanner in warehouse OR backend inventory check
+    // Find specific item by unique SKU code
+    // Usage: Barcode scanner or Admin search
     Optional<ProductVariant> findBySku(String sku);
 
-    // Check if an SKU exists (To prevent duplicates when Admin adds new items)
+    // Check if SKU exists (To prevent duplicates when adding new stock)
     boolean existsBySku(String sku);
 }
