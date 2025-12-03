@@ -9,29 +9,44 @@ import lombok.*;
 import java.util.HashSet;
 import java.util.Set;
 
+/**
+ * Represents a user's wishlist, which is a collection of products they have saved for later.
+ *
+ * <p>Each user has a single wishlist. This entity manages the many-to-many relationship
+ * between a wishlist and the products it contains.</p>
+ */
 @Entity
 @Getter
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-@EqualsAndHashCode
-@Table(name = "wishlists") // Explicitly map to SQL table
+@EqualsAndHashCode(exclude = {"user", "products"}) // Exclude relationships
+@Table(name = "wishlists")
 public class Wishlist {
 
+    /**
+     * The unique identifier for the wishlist. This is the primary key.
+     */
     @Id
-    // FIX: Use IDENTITY for MySQL
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "wishlist_id")
     private Long id;
 
-    // RELATIONSHIP: One User has One Wishlist
+    /**
+     * The user who owns this wishlist.
+     * This establishes a one-to-one relationship where each user has exactly one wishlist.
+     * It is ignored during JSON serialization to prevent circular dependencies.
+     */
     @OneToOne
     @JoinColumn(name = "user_id", nullable = false, unique = true)
     @JsonIgnore
     private User user;
 
-    // RELATIONSHIP: A Wishlist can contain Many Products
-    // We use a "Join Table" to store the links between Wishlists and Products
+    /**
+     * The set of products that the user has added to their wishlist.
+     * A {@code @ManyToMany} relationship is used here, managed by a join table
+     * named "wishlist_products", which links wishlists to products.
+     */
     @ManyToMany
     @JoinTable(
             name = "wishlist_products",

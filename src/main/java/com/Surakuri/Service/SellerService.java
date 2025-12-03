@@ -2,6 +2,7 @@ package com.Surakuri.Service;
 
 import com.Surakuri.Domain.AccountStatus;
 import com.Surakuri.Domain.User_Role;
+import com.Surakuri.Exception.ResourceNotFoundException;
 import com.Surakuri.Exception.UserAlreadyExistsException;
 import com.Surakuri.Model.dto.BusinessDetails;
 import com.Surakuri.Model.dto.SellerRegisterRequest;
@@ -12,8 +13,11 @@ import com.Surakuri.Repository.AddressRepository;
 import com.Surakuri.Repository.SellerReportRepository;
 import com.Surakuri.Repository.SellerRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 
@@ -32,14 +36,13 @@ public class SellerService {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
+    @Transactional
     public Seller registerSeller(SellerRegisterRequest req) {
 
-        // 1. CHECK DUPLICATES
         if (sellerRepository.existsByEmail(req.getEmail())) {
             throw new UserAlreadyExistsException("Seller email already exists.");
         }
 
-        // 2. CREATE ADDRESS FIRST (For Pickup)
         Address address = new Address();
         address.setContactPersonName(req.getSellerName());
         address.setContactMobile(req.getMobile());
@@ -50,10 +53,8 @@ public class SellerService {
         address.setPostalCode(req.getZipCode());
         address.setAddressLabel("Warehouse");
 
-        // Save Address to DB so we get an ID
         Address savedAddress = addressRepository.save(address);
 
-        // 3. CREATE SELLER
         Seller seller = new Seller();
         seller.setEmail(req.getEmail());
         seller.setPassword(passwordEncoder.encode(req.getPassword()));
@@ -61,21 +62,17 @@ public class SellerService {
         seller.setMobile(req.getMobile());
         seller.setTIN(req.getTinNumber());
         seller.setRole(User_Role.ROLE_SELLER);
-        seller.setAccountStatus(AccountStatus.PENDING_VERIFICATION); // Wait for Admin approval
+        seller.setAccountStatus(AccountStatus.PENDING_VERIFICATION);
 
-        // Link the Address
         seller.setPickupAddress(savedAddress);
 
-        // Embedded Business Details
         BusinessDetails business = new BusinessDetails();
         business.setBusinessName(req.getBusinessName());
         business.setBusinessAddress(req.getBusinessAddress());
         seller.setBusinessDetails(business);
 
-        // Save Seller
         Seller savedSeller = sellerRepository.save(seller);
 
-        // 4. CREATE EMPTY REPORT (Analytics)
         SellerReport report = new SellerReport();
         report.setSeller(savedSeller);
         report.setTotalEarnings(BigDecimal.ZERO);
@@ -84,5 +81,22 @@ public class SellerService {
         sellerReportRepository.save(report);
 
         return savedSeller;
+    }
+
+    public Seller findSellerProfileByJwt() {
+        UserDetails userDetails = (UserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        String username = userDetails.getUsername();
+
+        return sellerRepository.findByEmail(username)
+                .orElseThrow(() -> new ResourceNotFoundException("Seller not found with email: " + username));
+    }
+
+    @Transactional
+    public Seller approveSeller(Long sellerId) {
+        Seller seller = sellerRepository.findById(sellerId)
+                .orElseThrow(() -> new ResourceNotFoundException("Seller not found with ID: " + sellerId));
+
+        seller.setAccountStatus(AccountStatus.ACTIVE);
+        return sellerRepository.save(seller);
     }
 }

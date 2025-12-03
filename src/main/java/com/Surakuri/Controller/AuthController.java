@@ -1,6 +1,6 @@
 package com.Surakuri.Controller;
 
-import com.Surakuri.Response.AuthResponse;
+import com.Surakuri.Model.dto.AuthResponse;
 import com.Surakuri.Model.dto.LoginRequest;
 import com.Surakuri.Model.dto.SignupRequest;
 import com.Surakuri.Model.entity.User_Cart.User;
@@ -22,21 +22,12 @@ public class AuthController {
 
     // ==========================================
     // 1. REGISTER ENDPOINT
-    // URL: http://localhost:8080/auth/signup
+    // URL: http://localhost:2121/auth/signup
     // ==========================================
     @PostMapping("/signup")
-    public ResponseEntity<AuthResponse> createUserHandler(@RequestBody SignupRequest req) throws Exception {
-
-        // 1. Call Service to save user
-        User savedUser = authService.registerUser(req);
-
-        // 2. Create Success Response
-        AuthResponse response = new AuthResponse();
-        response.setJwt("token_placeholder"); // We will add real JWT later
-        response.setMessage("Registration Successful! Welcome " + savedUser.getFirstName());
-        response.setRole(savedUser.getRole());
-
-        return new ResponseEntity<>(response, HttpStatus.CREATED);
+    public ResponseEntity<String> createUserHandler(@RequestBody SignupRequest req) {
+        authService.registerUser(req);
+        return new ResponseEntity<>("Registration Successful!", HttpStatus.CREATED);
     }
 
     // ==========================================
@@ -45,22 +36,7 @@ public class AuthController {
     // ==========================================
     @PostMapping("/signin")
     public ResponseEntity<AuthResponse> loginUserHandler(@RequestBody LoginRequest req) {
-        try {
-            // 1. Call Service to check credentials
-            User user = authService.loginUser(req); // You need to ensure loginUser is public in AuthService
-
-            // 2. Create Success Response
-            AuthResponse response = new AuthResponse();
-            response.setJwt("token_placeholder");
-            response.setMessage("Login Successful");
-            response.setRole(user.getRole());
-
-            return new ResponseEntity<>(response, HttpStatus.OK);
-
-        } catch (Exception e) {
-            // If password wrong or user not found
-            AuthResponse response = new AuthResponse(null, e.getMessage(), null);
-            return new ResponseEntity<>(response, HttpStatus.UNAUTHORIZED);
-        }
+        AuthResponse response = authService.loginUser(req);
+        return new ResponseEntity<>(response, HttpStatus.OK);
     }
 }

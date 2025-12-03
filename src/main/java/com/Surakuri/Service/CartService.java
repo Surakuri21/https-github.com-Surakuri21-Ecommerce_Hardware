@@ -3,8 +3,8 @@ package com.Surakuri.Service;
 import com.Surakuri.Exception.ProductOutOfStockException;
 import com.Surakuri.Exception.ResourceNotFoundException;
 import com.Surakuri.Model.dto.AddItemRequest;
-import com.Surakuri.Model.dto.CartItemResponse; // Import
-import com.Surakuri.Model.dto.CartResponse;     // Import
+import com.Surakuri.Model.dto.CartItemResponse;
+import com.Surakuri.Model.dto.CartResponse;
 import com.Surakuri.Model.entity.Products_Categories.ProductVariant;
 import com.Surakuri.Model.entity.User_Cart.Cart;
 import com.Surakuri.Model.entity.User_Cart.CartItem;
@@ -36,114 +36,95 @@ public class CartService {
 
     @Transactional
     public CartResponse addItemToCart(Long userId, AddItemRequest req) {
-
-        // 1. FIND & VALIDATE
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         Cart cart = cartRepository.findByUserId(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("Cart not found"));
+                .orElseGet(() -> {
+                    Cart newCart = new Cart();
+                    newCart.setUser(user);
+                    return cartRepository.save(newCart);
+                });
 
         ProductVariant variant = variantRepository.findById(req.getVariantId())
                 .orElseThrow(() -> new ResourceNotFoundException("Product Variant not found"));
 
-        // 2. CHECK STOCK
         if (variant.getStockQuantity() < req.getQuantity()) {
-            throw new ProductOutOfStockException("Insufficient stock.");
+            throw new ProductOutOfStockException("Insufficient stock for " + variant.getVariantName());
         }
 
-        // 3. ADD OR UPDATE ITEM
-        Optional<CartItem> existingItem = cartItemRepository.findByCartIdAndVariantId(cart.getId(), variant.getId());
+        Optional<CartItem> existingItemOpt = cart.getCartItems().stream()
+                .filter(item -> item.getVariant().getId().equals(req.getVariantId()))
+                .findFirst();
 
-        if (existingItem.isPresent()) {
-            CartItem item = existingItem.get();
+        if (existingItemOpt.isPresent()) {
+            CartItem item = existingItemOpt.get();
             item.setQuantity(item.getQuantity() + req.getQuantity());
-            item.setSubtotal(variant.getPrice().multiply(new BigDecimal(item.getQuantity())));
             cartItemRepository.save(item);
         } else {
             CartItem newItem = new CartItem();
             newItem.setCart(cart);
             newItem.setVariant(variant);
             newItem.setQuantity(req.getQuantity());
-            newItem.setSellingPrice(variant.getPrice());
-            newItem.setSubtotal(variant.getPrice().multiply(new BigDecimal(req.getQuantity())));
-
-            cartItemRepository.save(newItem);
-            cart.getCartItems().add(newItem); // Update local list for calculation
+            cart.getCartItems().add(cartItemRepository.save(newItem));
         }
 
-        // 4. RECALCULATE & SAVE
-        Cart savedCart = calculateCartTotals(cart);
+        // We no longer save totals to the DB, just the items.
+        Cart savedCart = cartRepository.save(cart);
 
-        // 5. RETURN DTO (Safe Response)
+        // The mapToResponse method will now calculate all totals dynamically.
         return mapToResponse(savedCart);
     }
 
     public CartResponse findUserCart(Long userId) {
         Cart cart = cartRepository.findByUserId(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("Cart not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Cart not found for user ID: " + userId));
         return mapToResponse(cart);
     }
 
-    // --- HELPER: CALCULATE TOTALS ---
-    private Cart calculateCartTotals(Cart cart) {
-        BigDecimal totalAmount = BigDecimal.ZERO;
-        int totalItems = 0;
-
-        for (CartItem item : cart.getCartItems()) {
-            totalAmount = totalAmount.add(item.getSubtotal());
-            totalItems += item.getQuantity();
-        }
-
-        cart.setTotalSellingPrice(totalAmount);
-        cart.setTotalItem(totalItems);
-        return cartRepository.save(cart);
-    }
-
-    // --- HELPER: MAP TO DTO ---
     private CartResponse mapToResponse(Cart cart) {
-        System.out.println("DEBUG: Starting MapToResponse..."); // LOG 1
-
         CartResponse res = new CartResponse();
         res.setCartId(cart.getId());
-        res.setTotalSellingPrice(cart.getTotalSellingPrice());
-        res.setTotalItems(cart.getTotalItem());
 
-        System.out.println("DEBUG: Mapping User Name..."); // LOG 2
         if (cart.getUser() != null) {
             res.setCustomerName(cart.getUser().getFirstName() + " " + cart.getUser().getLastName());
         }
 
         List<CartItemResponse> itemDTOs = new ArrayList<>();
+        BigDecimal totalAmount = BigDecimal.ZERO;
+        int totalItems = 0;
 
         if (cart.getCartItems() != null) {
-            System.out.println("DEBUG: Found " + cart.getCartItems().size() + " items."); // LOG 3
-
             for (CartItem item : cart.getCartItems()) {
-                System.out.println("DEBUG: Processing Item ID: " + item.getId()); // LOG 4
+                ProductVariant variant = item.getVariant();
+                if (variant == null) continue; // Skip if variant is missing
+
+                BigDecimal subtotal = variant.getPrice().multiply(new BigDecimal(item.getQuantity()));
 
                 CartItemResponse itemRes = new CartItemResponse();
                 itemRes.setCartItemId(item.getId());
-                itemRes.setPrice(item.getSellingPrice());
+                itemRes.setPrice(variant.getPrice());
                 itemRes.setQuantity(item.getQuantity());
-                itemRes.setSubtotal(item.getSubtotal());
+                itemRes.setSubtotal(subtotal);
+                itemRes.setVariantName(variant.getVariantName());
 
-                if (item.getVariant() != null) {
-                    System.out.println("DEBUG: Getting Variant Name..."); // LOG 5
-                    itemRes.setVariantName(item.getVariant().getVariantName());
-
-                    if (item.getVariant().getProduct() != null) {
-                        System.out.println("DEBUG: Getting Product Name..."); // LOG 6
-                        itemRes.setProductName(item.getVariant().getProduct().getName());
-                        itemRes.setImageUrl(item.getVariant().getProduct().getImageUrl());
-                    }
+                if (variant.getProduct() != null) {
+                    itemRes.setProductName(variant.getProduct().getName());
+                    itemRes.setImageUrl(variant.getProduct().getImageUrl());
                 }
+
                 itemDTOs.add(itemRes);
+
+                // Aggregate totals
+                totalAmount = totalAmount.add(subtotal);
+                totalItems += item.getQuantity();
             }
         }
-        res.setItems(itemDTOs);
 
-        System.out.println("DEBUG: Mapping Finished Successfully."); // LOG 7
+        res.setItems(itemDTOs);
+        res.setTotalSellingPrice(totalAmount);
+        res.setTotalItems(totalItems);
+
         return res;
     }
 }

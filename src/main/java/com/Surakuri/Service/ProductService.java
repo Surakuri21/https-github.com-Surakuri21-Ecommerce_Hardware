@@ -9,13 +9,17 @@ import com.Surakuri.Model.entity.Products_Categories.ProductVariant;
 import com.Surakuri.Repository.CategoryRepository;
 import com.Surakuri.Repository.ProductRepository;
 import com.Surakuri.Repository.SellerRepository;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 public class ProductService {
@@ -26,15 +30,15 @@ public class ProductService {
     private CategoryRepository categoryRepository;
     @Autowired
     private SellerRepository sellerRepository;
+    @Autowired
+    private ObjectMapper objectMapper; // For converting Map to JSON string
 
     @Transactional
     public Product createProduct(CreateProductRequest req, Long sellerId) {
 
-        // 1. FIND SELLER
         Seller seller = sellerRepository.findById(sellerId)
                 .orElseThrow(() -> new RuntimeException("Seller not found"));
 
-        // 2. FIND OR CREATE CATEGORY
         Category category = categoryRepository.findByName(req.getCategoryName());
         if (category == null) {
             category = new Category();
@@ -42,7 +46,6 @@ public class ProductService {
             categoryRepository.save(category);
         }
 
-        // 3. CREATE PARENT PRODUCT
         Product product = new Product();
         product.setSeller(seller);
         product.setCategory(category);
@@ -50,39 +53,57 @@ public class ProductService {
         product.setBrand(req.getBrand());
         product.setDescription(req.getDescription());
         product.setImageUrl(req.getImageUrl());
-
-        // Set Price/Weight from first variant if available
-        if (!req.getVariants().isEmpty()) {
-            product.setPrice(req.getVariants().get(0).getPrice());
-            product.setWeightKg(req.getVariants().get(0).getWeight());
-        }
-
         product.setCreatedAt(LocalDateTime.now());
         product.setActive(true);
 
-        // SAVE PARENT FIRST (To get ID)
+        // Save parent first to get its ID
         Product savedProduct = productRepository.save(product);
 
-        // 4. PROCESS VARIANTS
-        // FIX: Don't create a new list. Use the list that is already inside the entity.
         List<ProductVariant> variantList = savedProduct.getVariants();
 
         for (VariantRequest vReq : req.getVariants()) {
             ProductVariant variant = new ProductVariant();
-            variant.setProduct(savedProduct); // Link to Parent
+            variant.setProduct(savedProduct);
             variant.setSku(vReq.getSku());
-            variant.setVariantName(vReq.getName());
             variant.setPrice(vReq.getPrice());
-            variant.setWeightKg(vReq.getWeight());
             variant.setStockQuantity(vReq.getQuantity());
-            variant.setMinStockLevel(10);
+            variant.setMinStockLevel(10); // Default value
 
-            // ADD TO EXISTING LIST (Do not use setVariants)
+            // Process flexible attributes
+            Map<String, String> attributes = vReq.getAttributes();
+            try {
+                // Store all attributes as a JSON string
+                variant.setSpecifications(objectMapper.writeValueAsString(attributes));
+            } catch (JsonProcessingException e) {
+                throw new RuntimeException("Error processing variant attributes", e);
+            }
+
+            // Generate a user-friendly variant name from attributes
+            String generatedName = attributes.values().stream().collect(Collectors.joining(" / "));
+            variant.setVariantName(generatedName);
+
+            // Extract weight from attributes if present
+            if (attributes.containsKey("Weight")) {
+                try {
+                    // Remove "kg" and parse
+                    String weightStr = attributes.get("Weight").replaceAll("[^\\d.]", "");
+                    variant.setWeightKg(new BigDecimal(weightStr));
+                } catch (NumberFormatException e) {
+                    variant.setWeightKg(BigDecimal.ZERO); // Default if parsing fails
+                }
+            } else {
+                variant.setWeightKg(BigDecimal.ZERO);
+            }
+
             variantList.add(variant);
         }
 
-        // 5. FINAL SAVE
-        // We don't need to call setVariants() because we added directly to the object reference.
+        // Set default price and weight on parent product from the first variant
+        if (!variantList.isEmpty()) {
+            savedProduct.setPrice(variantList.get(0).getPrice());
+            savedProduct.setWeightKg(variantList.get(0).getWeightKg());
+        }
+
         return productRepository.save(savedProduct);
     }
 }

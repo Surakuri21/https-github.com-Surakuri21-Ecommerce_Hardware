@@ -24,7 +24,8 @@ import java.util.ArrayList;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@ToString(exclude = {"cart", "addresses", "orders", "paymentOrders", "usedCoupons"}) // Prevent Logging Loop
+@ToString(exclude = {"cart", "addresses", "orders", "paymentOrders", "usedCoupons"})
+@EqualsAndHashCode(exclude = {"cart", "addresses", "orders", "paymentOrders", "usedCoupons"})
 @Table(name = "users")
 public class User {
 

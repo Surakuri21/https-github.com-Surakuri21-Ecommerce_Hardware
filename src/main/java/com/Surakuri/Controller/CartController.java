@@ -4,6 +4,7 @@ import com.Surakuri.Model.dto.AddItemRequest;
 import com.Surakuri.Model.dto.CartResponse; // <--- MUST IMPORT THIS
 import com.Surakuri.Model.entity.User_Cart.User;
 import com.Surakuri.Repository.UserRepository;
+import com.Surakuri.Service.UserService;
 import com.Surakuri.Service.CartService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -18,6 +19,9 @@ public class CartController {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private UserService userService;
 
     // ==========================================
     // 1. ADD TO CART
@@ -50,4 +54,13 @@ public class CartController {
 
         return ResponseEntity.ok(cart);
     }
+
+    @GetMapping("/my-cart")
+    public ResponseEntity<CartResponse> getMyCart() {
+        // We need a new service method to find the user by JWT
+        User user = userService.findUserProfileByJwt();
+        CartResponse cart = cartService.findUserCart(user.getId());
+        return ResponseEntity.ok(cart);
+    }
+
 }

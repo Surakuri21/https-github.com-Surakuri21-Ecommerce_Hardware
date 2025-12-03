@@ -1,6 +1,6 @@
 package com.Surakuri.Controller;
 
-import com.Surakuri.Response.AuthResponse;
+import com.Surakuri.Model.dto.AuthResponse; // Correct import for the new DTO
 import com.Surakuri.Model.dto.SellerRegisterRequest;
 import com.Surakuri.Model.entity.Other_Business_Entities.Seller;
 import com.Surakuri.Service.SellerService;
@@ -21,15 +21,9 @@ public class SellerController {
 
     // URL: http://localhost:2121/sellers/register
     @PostMapping("/register")
-    public ResponseEntity<AuthResponse> registerSeller(@RequestBody SellerRegisterRequest req) {
-
-        Seller seller = sellerService.registerSeller(req);
-
-        AuthResponse res = new AuthResponse();
-        res.setJwt("token_placeholder");
-        res.setMessage("Seller Registration Successful! Please wait for Admin approval.");
-        res.setRole(seller.getRole());
-
-        return new ResponseEntity<>(res, HttpStatus.CREATED);
+    public ResponseEntity<String> registerSeller(@RequestBody SellerRegisterRequest req) {
+        sellerService.registerSeller(req);
+        String message = "Seller Registration Successful! Please wait for Admin approval.";
+        return new ResponseEntity<>(message, HttpStatus.CREATED);
     }
 }
