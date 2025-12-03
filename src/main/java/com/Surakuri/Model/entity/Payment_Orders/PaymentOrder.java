@@ -7,7 +7,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.math.BigDecimal; // Standard for money
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
@@ -17,17 +17,15 @@ import java.util.Set;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-@EqualsAndHashCode
-@Table(name = "payment_orders") // Explicitly map to SQL table
+@Table(name = "payment_orders")
 public class PaymentOrder {
 
     @Id
-    // FIX: Use IDENTITY to match MySQL AUTO_INCREMENT
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "payment_order_id")
     private Long id;
 
-    // FIX: Use BigDecimal for money
+    // 1. This maps to the SQL column 'amount'
     @Column(name = "amount", nullable = false)
     private BigDecimal amount;
 
@@ -35,36 +33,27 @@ public class PaymentOrder {
     @Column(name = "status")
     private PaymentOrderStatus status = PaymentOrderStatus.PENDING;
 
-
-
-    // --- EMBEDDED DETAILS ---
-    // This flattens the PaymentDetails DTO columns into this table
-    // Inside PaymentOrder.java
+    // 2. This embedded object also has an 'amount' field.
+    // We MUST rename it to 'payment_amount' to avoid the "Duplicate Column" error.
     @Embedded
     @AttributeOverrides({
             @AttributeOverride(name = "paymentMethod", column = @Column(name = "payment_method")),
+
+            @AttributeOverride(name = "paymentId", column = @Column(name = "transaction_reference_id")),
+
             @AttributeOverride(name = "status", column = @Column(name = "payment_status")),
-            @AttributeOverride(name = "amount", column = @Column(name = "payment_amount")),
-            // MAP generic 'paymentId' to SQL column 'transaction_reference_id'
-            @AttributeOverride(name = "paymentId", column = @Column(name = "transaction_reference_id"))
+            @AttributeOverride(name = "amount", column = @Column(name = "payment_amount"))
     })
     private PaymentDetails paymentDetails;
-
-
-
-    // --- RELATIONSHIPS ---
 
     @ManyToOne
     @JoinColumn(name = "user_id", nullable = false)
     @JsonIgnore
     private User user;
 
-    // FIX: Added 'mappedBy'.
-    // This refers to the 'private PaymentOrder paymentOrder;' field in your Order.java
     @OneToMany(mappedBy = "paymentOrder", cascade = CascadeType.ALL)
+    @JsonIgnore
     private Set<Order> orders = new HashSet<>();
-
-    // --- TIMESTAMPS ---
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
@@ -73,12 +62,8 @@ public class PaymentOrder {
     private LocalDateTime updatedAt;
 
     @PrePersist
-    protected void onCreate() {
-        this.createdAt = LocalDateTime.now();
-    }
+    protected void onCreate() { this.createdAt = LocalDateTime.now(); }
 
     @PreUpdate
-    protected void onUpdate() {
-        this.updatedAt = LocalDateTime.now();
-    }
+    protected void onUpdate() { this.updatedAt = LocalDateTime.now(); }
 }

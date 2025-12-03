@@ -10,7 +10,8 @@ import lombok.*;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-@EqualsAndHashCode
+// ⚠️ CRITICAL FIX: Exclude 'user'
+@EqualsAndHashCode(exclude = {"user"})
 @Table(name = "customer_addresses")
 public class Address {
 
@@ -19,44 +20,67 @@ public class Address {
     @Column(name = "address_id")
     private Long id;
 
-    // --- CRITICAL FIX 1: RELATIONSHIP ---
-
-    // Changed to ManyToOne: A User can have multiple addresses.
-    // Changed to nullable=true: This address might belong to a Seller (who isn't a User).
     @ManyToOne
     @JoinColumn(name = "user_id", nullable = true)
-    @JsonIgnore // Prevents infinite loops in JSON
+    @JsonIgnore // Stop the loop back to User
     private User user;
 
-    // Note: We DO NOT add a 'private Seller seller' field here.
-    // Why? Because the 'sellers' table holds the Foreign Key to this address.
-    // This is a "Unidirectional" relationship from Seller -> Address.
-
-    // --- CRITICAL FIX 2: GENERIC FIELDS ---
-
-    @Column(name = "contact_person_name") // Unified name (Replaces recipientName)
+    /**
+     * The full name of the person who will receive the delivery at this address.
+     */
+    @Column(name = "contact_person_name", nullable = false)
     private String contactPersonName;
 
-    @Column(name = "contact_mobile")      // Unified mobile (Replaces phoneNumber)
+    /**
+     * The mobile number of the contact person.
+     */
+    @Column(name = "contact_mobile", nullable = false)
     private String contactMobile;
 
-    // --- PHILIPPINE ADDRESS STANDARD ---
+    /**
+     * A user-defined label for the address (e.g., "Home", "Office", "Warehouse").
+     */
+    @Column(name = "address_label")
+    private String addressLabel;
 
-    private String addressLabel; // e.g., "Warehouse 1", "Home"
+    /**
+     * The administrative region of the address.
+     */
+    @Column(nullable = false)
+    private String region;
 
-    private String region;       // NCR, Region VII
+    /**
+     * The province of the address.
+     */
+    @Column(nullable = false)
+    private String province;
 
-    private String province;     // Cebu
+    /**
+     * The city or municipality of the address.
+     */
+    @Column(nullable = false)
+    private String city;
 
-    private String city;         // Lapu-Lapu City
+    /**
+     * The specific barangay (village or district) of the address.
+     */
+    @Column(nullable = false)
+    private String barangay;
 
-    private String barangay;     // Brgy. Basak
+    /**
+     * The street name, building number, and unit number.
+     */
+    @Column(nullable = false)
+    private String street;
 
-    private String street;       // Lot 4, Block 2
-
+    /**
+     * The postal or ZIP code for the address.
+     */
+    @Column(name = "postal_code", nullable = false)
     private String postalCode;
 
-    private String additionalNotes; // "Green gate"
+    @Column(name = "additional_notes")
+    private String additionalNotes;
 
     @Column(name = "is_default")
     private boolean isDefault = false;

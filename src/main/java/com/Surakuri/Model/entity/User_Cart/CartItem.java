@@ -5,57 +5,55 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.math.BigDecimal; // Standard for money
-
+/**
+ * Represents a single item within a shopping cart.
+ * It links a specific product variant to a cart and defines the quantity desired by the user.
+ * This entity is transient; its data is typically moved to an OrderItem upon checkout.
+ */
 @Entity
 @Getter
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-@EqualsAndHashCode
-@Table(name = "cart_items") // Explicitly map to SQL table
+@EqualsAndHashCode(exclude = {"cart", "variant"}) // Prevents infinite loops in relationships
+@Table(name = "cart_items")
 public class CartItem {
 
+    /**
+     * The unique identifier for the cart item. This is the primary key.
+     */
     @Id
-    // FIX: Use IDENTITY to match MySQL AUTO_INCREMENT
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "cart_item_id")
     private Long id;
 
+    /**
+     * The cart to which this item belongs.
+     * This creates a many-to-one relationship, as a cart can have many items.
+     * It's ignored during JSON serialization to prevent circular dependencies.
+     */
     @ManyToOne
-    @JsonIgnore // Prevents infinite loops when converting to JSON
     @JoinColumn(name = "cart_id", nullable = false)
+    @JsonIgnore
     private Cart cart;
 
-    // --- CHANGED: Link to Variant (Size/SKU) instead of generic Product ---
-    // This matches the SQL Foreign Key 'variant_id'
+    /**
+     * The specific product variant being added to the cart.
+     * This links the cart item to a purchasable SKU, which holds the current price and stock info.
+     */
     @ManyToOne
     @JoinColumn(name = "variant_id", nullable = false)
     private ProductVariant variant;
 
-    // You don't need 'private String size' anymore,
-    // because the ProductVariant object ALREADY contains the size/weight info!
+    /**
+     * The number of units of the product variant in the cart.
+     */
+    @Column(nullable = false)
+    private int quantity;
 
-    private int quantity = 1;
-
-    // --- PRICING (Use BigDecimal) ---
-
-    @Column(name = "mrp_price")
-    private BigDecimal mrpPrice;
-
-    @Column(name = "selling_price") // This is the price snapshot at moment of add-to-cart
-    private BigDecimal sellingPrice;
-
-    @Column(name = "subtotal") // Calculated as: quantity * sellingPrice
-    private BigDecimal subtotal;
-
-    // --- Helper Method to get Product details easily ---
-    // This lets you allow frontend to say cartItem.getProductName()
-    public String getProductName() {
-        return variant.getProduct().getName();
-    }
-
-    public String getSizeOrSpec() {
-        return variant.getVariantName(); // e.g., "40kg Bag"
-    }
+    // --- CODE QUALITY IMPROVEMENT ---
+    // The price fields (mrpPrice, sellingPrice, subtotal) have been removed from CartItem.
+    // REASON: The Cart is a temporary state. The current, authoritative price should always
+    // be retrieved from the associated `ProductVariant` entity to avoid data inconsistency.
+    // A historical price snapshot is correctly stored in the `OrderItem` entity upon purchase.
 }

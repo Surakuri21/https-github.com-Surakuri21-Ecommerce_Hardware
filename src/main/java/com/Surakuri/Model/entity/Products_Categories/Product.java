@@ -1,10 +1,9 @@
 package com.Surakuri.Model.entity.Products_Categories;
 
-import com.Surakuri.Model.entity.Other_Business_Entities.Seller; // Import Seller
+import com.Surakuri.Model.entity.Other_Business_Entities.Seller;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
-
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -15,7 +14,8 @@ import java.util.List;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-@EqualsAndHashCode
+// ⚠️ CRITICAL FIX: Exclude ALL relationships
+@EqualsAndHashCode(exclude = {"variants", "seller", "category"})
 @Table(name = "products")
 public class Product {
 
@@ -30,44 +30,35 @@ public class Product {
     @Column(columnDefinition = "TEXT")
     private String description;
 
-    private String brand; // e.g. "Phelps Dodge"
-
+    private String brand;
     private String imageUrl;
-
-    // Base Price (Optional, for display "Starts at...")
     private BigDecimal price = BigDecimal.ZERO;
     private BigDecimal mrp = BigDecimal.ZERO;
 
     @Column(name = "weight_kg")
     private BigDecimal weightKg = BigDecimal.ZERO;
 
-    @Column(name = "sku")
-    private String sku; // General SKU if needed
+    private String sku;
 
     @Column(columnDefinition = "TEXT")
     private String specifications;
 
     private boolean isActive = true;
-
     private LocalDateTime createdAt;
-
-    // --- RELATIONSHIPS ---
 
     @ManyToOne
     @JoinColumn(name = "category_id")
     private Category category;
 
-    // FIX 1: Add the SELLER relationship (This fixes setSeller error)
     @ManyToOne
     @JoinColumn(name = "seller_id")
-    @JsonIgnore // Prevent infinite loop when fetching Seller -> Products -> Seller
+    @JsonIgnore
     private Seller seller;
 
-    // FIX 2: Add the VARIANTS list with Cascade (This fixes setVariants error)
-    // 'cascade = CascadeType.ALL' means "When I save the Product, save all these Variants automatically"
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
     private List<ProductVariant> variants = new ArrayList<>();
 
-
-    }
-    
+    @PrePersist
+    protected void onCreate() { this.createdAt = LocalDateTime.now(); }
+}

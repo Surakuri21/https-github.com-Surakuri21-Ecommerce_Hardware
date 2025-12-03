@@ -30,18 +30,24 @@ public class SecurityConfig {
 
                 // 2. URL Permissions
                 .authorizeHttpRequests(Authorize -> Authorize
-                        // Allow Login & Register
+
+                        // 1. Public Endpoints (Auth & Sellers)
                         .requestMatchers("/auth/**").permitAll()
-                        // Allow Seller Registration
                         .requestMatchers("/sellers/**").permitAll()
 
-
-                        // Allow Product Creation (Temporary for Testing)
+                        // 2. Testing Endpoints (Open for Dev)
                         .requestMatchers("/api/products/**").permitAll()
+                        .requestMatchers("/api/cart/**").permitAll()
+                        .requestMatchers("/api/orders/**").permitAll() // <--- ADD THIS NEW LINE!
 
-                        // Lock everything else
-                        .requestMatchers("/api/**").authenticated()
-                        .anyRequest().permitAll()
+
+                        // 3. Locked Endpoints (Specific)
+                        // .requestMatchers("/api/admin/**").hasRole("ADMIN")
+
+                        // 4. The "Catch-All" (MUST BE LAST)
+                        .anyRequest().permitAll() // Or .authenticated() if you want to lock everything else
+
+
                 )
 
                 // 3. Disable CSRF (Not needed for stateless APIs)

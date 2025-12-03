@@ -33,6 +33,14 @@ public class ProductVariant {
     @Column(name = "weight_kg")
     private BigDecimal weightKg; // Critical for calculating shipping of heavy hardware
 
+    // --- INVENTORY FIELDS (MERGED FROM DEPRECATED INVENTORY ENTITY) ---
+    @Column(name = "stock_quantity")
+    private int stockQuantity = 0;
+
+    @Column(name = "min_stock_level")
+    private int minStockLevel = 10;
+
+
     // --- RELATIONSHIPS ---
 
     // 1. PARENT PRODUCT (Many Variants belong to One Product)
@@ -40,9 +48,4 @@ public class ProductVariant {
     @JoinColumn(name = "product_id", nullable = false)
     @JsonIgnore // Stops infinite recursion: Product -> Variant -> Product
     private Product product;
-
-    // 2. INVENTORY (One Variant has One Inventory Count)
-    // 'mappedBy' tells Hibernate the link is inside Inventory.java
-    @OneToOne(mappedBy = "variant", cascade = CascadeType.ALL)
-    private Inventory inventory;
 }

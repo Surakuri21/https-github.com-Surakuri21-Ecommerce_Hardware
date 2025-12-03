@@ -4,7 +4,6 @@ import com.Surakuri.Model.dto.CreateProductRequest;
 import com.Surakuri.Model.dto.VariantRequest;
 import com.Surakuri.Model.entity.Other_Business_Entities.Seller;
 import com.Surakuri.Model.entity.Products_Categories.Category;
-import com.Surakuri.Model.entity.Products_Categories.Inventory;
 import com.Surakuri.Model.entity.Products_Categories.Product;
 import com.Surakuri.Model.entity.Products_Categories.ProductVariant;
 import com.Surakuri.Repository.CategoryRepository;
@@ -14,7 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
+
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -75,14 +74,8 @@ public class ProductService {
             variant.setVariantName(vReq.getName());
             variant.setPrice(vReq.getPrice());
             variant.setWeightKg(vReq.getWeight());
-
-            // Inventory
-            Inventory inventory = new Inventory();
-            inventory.setVariant(variant);
-            inventory.setQuantityOnHand(vReq.getQuantity());
-            inventory.setMinStockLevel(10);
-
-            variant.setInventory(inventory);
+            variant.setStockQuantity(vReq.getQuantity());
+            variant.setMinStockLevel(10);
 
             // ADD TO EXISTING LIST (Do not use setVariants)
             variantList.add(variant);
