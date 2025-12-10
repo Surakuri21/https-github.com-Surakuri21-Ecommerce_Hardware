@@ -53,9 +53,7 @@ public class CartService {
             throw new ProductOutOfStockException("Insufficient stock for " + variant.getVariantName());
         }
 
-        Optional<CartItem> existingItemOpt = cart.getCartItems().stream()
-                .filter(item -> item.getVariant().getId().equals(req.getVariantId()))
-                .findFirst();
+        Optional<CartItem> existingItemOpt = cartItemRepository.findByCartIdAndVariantId(cart.getId(), variant.getId());
 
         if (existingItemOpt.isPresent()) {
             CartItem item = existingItemOpt.get();
@@ -66,18 +64,17 @@ public class CartService {
             newItem.setCart(cart);
             newItem.setVariant(variant);
             newItem.setQuantity(req.getQuantity());
-            cart.getCartItems().add(cartItemRepository.save(newItem));
+            cartItemRepository.save(newItem);
         }
 
-        // We no longer save totals to the DB, just the items.
-        Cart savedCart = cartRepository.save(cart);
+        Cart updatedCart = cartRepository.findByUserIdWithItems(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Cart not found after update"));
 
-        // The mapToResponse method will now calculate all totals dynamically.
-        return mapToResponse(savedCart);
+        return mapToResponse(updatedCart);
     }
 
     public CartResponse findUserCart(Long userId) {
-        Cart cart = cartRepository.findByUserId(userId)
+        Cart cart = cartRepository.findByUserIdWithItems(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Cart not found for user ID: " + userId));
         return mapToResponse(cart);
     }
@@ -97,7 +94,7 @@ public class CartService {
         if (cart.getCartItems() != null) {
             for (CartItem item : cart.getCartItems()) {
                 ProductVariant variant = item.getVariant();
-                if (variant == null) continue; // Skip if variant is missing
+                if (variant == null) continue;
 
                 BigDecimal subtotal = variant.getPrice().multiply(new BigDecimal(item.getQuantity()));
 
@@ -114,8 +111,6 @@ public class CartService {
                 }
 
                 itemDTOs.add(itemRes);
-
-                // Aggregate totals
                 totalAmount = totalAmount.add(subtotal);
                 totalItems += item.getQuantity();
             }

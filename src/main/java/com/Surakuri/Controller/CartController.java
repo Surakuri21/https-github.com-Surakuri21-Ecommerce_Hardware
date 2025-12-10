@@ -1,11 +1,10 @@
 package com.Surakuri.Controller;
 
 import com.Surakuri.Model.dto.AddItemRequest;
-import com.Surakuri.Model.dto.CartResponse; // <--- MUST IMPORT THIS
+import com.Surakuri.Model.dto.CartResponse;
 import com.Surakuri.Model.entity.User_Cart.User;
-import com.Surakuri.Repository.UserRepository;
-import com.Surakuri.Service.UserService;
 import com.Surakuri.Service.CartService;
+import com.Surakuri.Service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -18,49 +17,29 @@ public class CartController {
     private CartService cartService;
 
     @Autowired
-    private UserRepository userRepository;
-
-    @Autowired
     private UserService userService;
 
-    // ==========================================
-    // 1. ADD TO CART
-    // ==========================================
+    /**
+     * Adds an item to the currently authenticated user's shopping cart.
+     * The user is identified via their JWT token.
+     */
     @PutMapping("/add")
-    // ERROR CHECK: Does this say 'ResponseEntity<Cart>'?
-    // CHANGE IT TO: 'ResponseEntity<CartResponse>'
     public ResponseEntity<CartResponse> addItemToCart(@RequestBody AddItemRequest req) {
-
-        User user = userRepository.findByEmail("builder@hardware.ph").orElse(null);
-        Long userId = (user != null) ? user.getId() : 1L;
-
-        // ERROR CHECK: Ensure service returns DTO
-        CartResponse updatedCart = cartService.addItemToCart(userId, req);
-
+        // Securely get the user ID from the JWT token.
+        User user = userService.findUserProfileByJwt();
+        CartResponse updatedCart = cartService.addItemToCart(user.getId(), req);
         return ResponseEntity.ok(updatedCart);
     }
 
-    // ==========================================
-    // 2. VIEW CART
-    // ==========================================
+    /**
+     * Retrieves the shopping cart for the currently authenticated user.
+     * The user is identified via their JWT token.
+     */
     @GetMapping
-    // ERROR CHECK: Change 'Cart' to 'CartResponse' here too!
     public ResponseEntity<CartResponse> findUserCart() {
-
-        User user = userRepository.findByEmail("builder@hardware.ph").orElse(null);
-        Long userId = (user != null) ? user.getId() : 1L;
-
-        CartResponse cart = cartService.findUserCart(userId);
-
-        return ResponseEntity.ok(cart);
-    }
-
-    @GetMapping("/my-cart")
-    public ResponseEntity<CartResponse> getMyCart() {
-        // We need a new service method to find the user by JWT
+        // Securely get the user ID from the JWT token.
         User user = userService.findUserProfileByJwt();
         CartResponse cart = cartService.findUserCart(user.getId());
         return ResponseEntity.ok(cart);
     }
-
 }

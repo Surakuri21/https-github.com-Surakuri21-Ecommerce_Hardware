@@ -41,9 +41,13 @@ public class SecurityConfig {
         http
                 .sessionManagement(management -> management.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(Authorize -> Authorize
+                        // Public endpoints
                         .requestMatchers("/auth/**").permitAll()
                         .requestMatchers("/sellers/**").permitAll()
-                        .anyRequest().authenticated() // All other requests must be authenticated
+                        .requestMatchers("/api/products/**").permitAll() // Allow public access to products
+
+                        // All other requests must be authenticated
+                        .anyRequest().authenticated()
                 )
                 .csrf(csrf -> csrf.disable())
                 .cors(cors -> cors.configurationSource(request -> {

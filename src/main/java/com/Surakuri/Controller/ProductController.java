@@ -6,6 +6,8 @@ import com.Surakuri.Model.entity.Products_Categories.Product;
 import com.Surakuri.Service.ProductService;
 import com.Surakuri.Service.SellerService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -21,23 +23,29 @@ public class ProductController {
     @Autowired
     private SellerService sellerService;
 
-    // URL: POST http://localhost:2121/api/products/seller/{sellerId}
-    @PostMapping("/seller/{sellerId}")
-    public ResponseEntity<Product> addProduct(@PathVariable Long sellerId,
-                                              @RequestBody CreateProductRequest req) {
-
-        Product newProduct = productService.createProduct(req, sellerId);
-        return new ResponseEntity<>(newProduct, HttpStatus.CREATED);
-    }
-
-
-    // URL: POST http://localhost:2121/api/products/create
+    /**
+     * Endpoint to create a new product. This is protected and only accessible by authenticated sellers.
+     * The seller is identified via their JWT token.
+     * URL: POST http://localhost:2121/api/products/create
+     */
     @PostMapping("/create")
     @PreAuthorize("hasRole('SELLER')")
     public ResponseEntity<Product> createProduct(@RequestBody CreateProductRequest req) {
-        // We need to get the seller from the JWT
         Seller seller = sellerService.findSellerProfileByJwt();
         Product product = productService.createProduct(req, seller.getId());
         return new ResponseEntity<>(product, HttpStatus.CREATED);
+    }
+
+    /**
+     * Public endpoint to get a paginated list of all active products.
+     * Supports sorting and pagination via URL parameters.
+     * Example: GET http://localhost:2121/api/products?page=0&size=10&sort=price,asc
+     * @param pageable A Pageable object automatically created by Spring from the request parameters.
+     * @return A ResponseEntity containing a Page of products.
+     */
+    @GetMapping
+    public ResponseEntity<Page<Product>> getAllProducts(Pageable pageable) {
+        Page<Product> products = productService.findAllProducts(pageable);
+        return ResponseEntity.ok(products);
     }
 }
